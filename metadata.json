@@ -1,0 +1,7 @@
+{
+  "name": "Bengali Neural Voice Engine",
+  "description": "An advanced Bengali speech synthesis application using Gemini's latest TTS and Thinking models for emotionally resonant and phonetically perfect audio generation.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
