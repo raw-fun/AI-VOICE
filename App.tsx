@@ -20,53 +20,45 @@ import {
   ClockIcon,
   MusicalNoteIcon,
   SwatchIcon,
-  KeyIcon
+  KeyIcon,
+  StopIcon,
+  CheckBadgeIcon
 } from '@heroicons/react/24/solid';
 
 const VOICE_META = {
   [VoiceName.Puck]: { 
     label: "Puck",
-    desc: "Playful & Energetic", 
+    desc: "Energetic", 
     gradient: "from-cyan-400 to-blue-500", 
-    bg: "bg-cyan-900/20", 
-    border: "border-cyan-500/30",
     iconColor: "text-cyan-400"
   },
   [VoiceName.Charon]: { 
     label: "Charon",
-    desc: "Deep & Authoritative", 
+    desc: "Deep", 
     gradient: "from-indigo-400 to-purple-500", 
-    bg: "bg-indigo-900/20", 
-    border: "border-indigo-500/30",
     iconColor: "text-indigo-400"
   },
   [VoiceName.Kore]: { 
     label: "Kore",
-    desc: "Calm & Soothing", 
+    desc: "Soothing", 
     gradient: "from-teal-400 to-emerald-500", 
-    bg: "bg-teal-900/20", 
-    border: "border-teal-500/30",
     iconColor: "text-teal-400"
   },
   [VoiceName.Fenrir]: { 
     label: "Fenrir",
-    desc: "Intense & Dynamic", 
+    desc: "Intense", 
     gradient: "from-red-400 to-orange-500", 
-    bg: "bg-red-900/20", 
-    border: "border-red-500/30",
     iconColor: "text-red-400"
   },
   [VoiceName.Zephyr]: { 
     label: "Zephyr",
-    desc: "Balanced & Neutral", 
+    desc: "Neutral", 
     gradient: "from-blue-400 to-indigo-500", 
-    bg: "bg-blue-900/20", 
-    border: "border-blue-500/30",
     iconColor: "text-blue-400"
   },
 };
 
-// WAV Encoding Helper
+// WAV Encoding Helper (Kept same as before)
 const writeString = (view: DataView, offset: number, string: string) => {
   for (let i = 0; i < string.length; i++) {
     view.setUint8(offset + i, string.charCodeAt(i));
@@ -181,10 +173,9 @@ const App: React.FC = () => {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
       setAudioContext(ctx);
       
-      // Create global filter node for emphasis
       const filter = ctx.createBiquadFilter();
       filter.type = "peaking";
-      filter.frequency.value = 3000; // Human speech presence range
+      filter.frequency.value = 3000; 
       filter.Q.value = 1.0;
       filter.gain.value = 0;
       filter.connect(ctx.destination);
@@ -208,7 +199,7 @@ const App: React.FC = () => {
   // Karaoke Loop
   useEffect(() => {
     if (isPlaying && audioBuffer && audioContext) {
-        const words = text.replace(/<[^>]*>/g, '').split(/\s+/); // Crude split on spaces, ignoring tags
+        const words = text.replace(/<[^>]*>/g, '').split(/\s+/); 
         const duration = audioBuffer.duration / playbackRate;
         
         const updateKaraoke = () => {
@@ -242,7 +233,7 @@ const App: React.FC = () => {
       isThinking: true,
       isSynthesizing: false,
       progress: 30,
-      statusMessage: deep ? "Engaging Gemini 3.0 Pro Thinking Protocol..." : "Polishing text..."
+      statusMessage: deep ? "Thinking Protocol Active..." : "Polishing..."
     });
 
     try {
@@ -257,17 +248,17 @@ const App: React.FC = () => {
       setTimeout(() => setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: '' }), 2000);
     } catch (error) {
       console.error(error);
-      setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: "Optimization Failed: Check API Key" });
+      setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: "Optimization Failed" });
     }
   };
 
   const handleSynthesis = async () => {
     if (!isApiConnected) {
-        alert("Please connect your Gemini API Key below first.");
+        alert("Please connect your Gemini API Key first.");
         return;
     }
     if (!text.trim()) return;
-    initAudio(); // Ensure context exists
+    initAudio(); 
     
     if (sourceNode) {
       try { sourceNode.stop(); } catch(e) {}
@@ -278,43 +269,41 @@ const App: React.FC = () => {
       isThinking: false,
       isSynthesizing: true,
       progress: 50,
-      statusMessage: "Synthesizing High-Fidelity Audio..."
+      statusMessage: "Synthesizing Audio..."
     });
 
     try {
-      // Use existing context
       const ctx = audioContext || new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
       if(!audioContext) setAudioContext(ctx);
 
       const buffer = await synthesizeSpeech(text, selectedEmotion, selectedVoice, ctx, apiKey);
       setAudioBuffer(buffer);
       
-      // Save to History
       const wavBlob = audioBufferToWav(buffer);
       const newItem: HistoryItem = {
           id: Date.now().toString(),
-          text: text, // Save the optimized/tagged text
-          originalText: text.replace(/<[^>]*>/g, ''), // Save plain text for preview
+          text: text,
+          originalText: text.replace(/<[^>]*>/g, ''),
           emotion: selectedEmotion,
           voice: selectedVoice,
           timestamp: Date.now(),
           audioBlob: wavBlob
       };
       await saveHistoryItem(newItem);
-      loadHistory(); // Refresh sidebar
+      loadHistory(); 
 
       setProcessing({
         isThinking: false,
         isSynthesizing: false,
         progress: 100,
-        statusMessage: "Ready to Play"
+        statusMessage: "Ready"
       });
       
       playAudio(buffer, ctx);
 
     } catch (error) {
       console.error(error);
-      setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: "Synthesis Failed: Check API Key" });
+      setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: "Synthesis Failed" });
     }
   };
 
@@ -325,7 +314,6 @@ const App: React.FC = () => {
         try { sourceNode.stop(); } catch(e) {}
     }
 
-    // Ensure filter exists (race condition check)
     let filter = filterNode;
     if (!filter) {
         filter = ctx.createBiquadFilter();
@@ -340,7 +328,7 @@ const App: React.FC = () => {
     source.buffer = buffer;
     source.playbackRate.value = playbackRate;
     source.detune.value = pitchShift;
-    source.connect(filter!); // Source -> Filter -> Dest
+    source.connect(filter!); 
     source.onended = () => setIsPlaying(false);
     
     startTimeRef.current = ctx.currentTime;
@@ -349,17 +337,21 @@ const App: React.FC = () => {
     setIsPlaying(true);
   };
 
+  const handleStop = () => {
+    if (sourceNode) {
+        try { sourceNode.stop(); } catch(e) {}
+        setIsPlaying(false);
+    }
+  };
+
   const restoreHistoryItem = async (item: HistoryItem) => {
       setText(item.text);
       setSelectedEmotion(item.emotion);
       setSelectedVoice(item.voice);
-      
-      // Decode audio
       const arrayBuffer = await item.audioBlob.arrayBuffer();
       if (audioContext) {
           const buffer = await audioContext.decodeAudioData(arrayBuffer);
           setAudioBuffer(buffer);
-          // Don't auto play, just load
       }
       setHistoryOpen(false);
   };
@@ -371,32 +363,29 @@ const App: React.FC = () => {
 
   const handleDownload = (format: 'wav' | 'ogg') => {
     if (!audioBuffer) return;
-    
     if (format === 'ogg' && (window as any).MediaRecorder) {
-        alert("High-quality OGG export requires external libraries. Downloading standard WAV instead.");
+        alert("Downloading as WAV.");
         handleDownload('wav');
         return;
     }
-
     const wavBlob = audioBufferToWav(audioBuffer);
     const url = URL.createObjectURL(wavBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bengali-voice-${Date.now()}.${format}`;
+    a.download = `voice-${Date.now()}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  // Render Karaoke Text
   const renderEditor = () => {
     if (isPlaying) {
         const words = text.replace(/<[^>]*>/g, '').split(/\s+/);
         return (
-            <div className="w-full flex-grow p-5 text-xl font-serif leading-loose overflow-y-auto bg-black/40 text-gray-400 rounded-lg">
+            <div className="w-full h-full p-6 text-2xl font-serif leading-loose overflow-y-auto text-gray-500 bg-black/20">
                 {words.map((word, i) => (
-                    <span key={i} className={`inline-block mr-2 transition-colors duration-200 ${i === currentWordIndex ? 'text-cyan-400 scale-110 font-bold' : ''} ${i < currentWordIndex ? 'text-gray-600' : ''}`}>
+                    <span key={i} className={`inline-block mr-2 transition-all duration-100 ${i === currentWordIndex ? 'text-cyan-400 scale-105 font-bold' : ''} ${i < currentWordIndex ? 'text-gray-700' : ''}`}>
                         {word}
                     </span>
                 ))}
@@ -407,14 +396,15 @@ const App: React.FC = () => {
         <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="বাংলা টেক্সট এখানে লিখুন... (Type Bengali here)"
-            className="w-full flex-grow bg-transparent p-5 text-xl text-gray-100 placeholder-gray-700 focus:outline-none resize-none font-serif leading-loose"
+            placeholder="বাংলা টেক্সট লিখুন..."
+            className="w-full h-full bg-transparent p-6 text-xl text-gray-200 placeholder-gray-700 focus:outline-none resize-none font-serif leading-relaxed"
         />
     );
   };
 
   return (
-    <div className="min-h-screen neural-gradient flex flex-col items-center p-4 md:p-8 font-sans relative overflow-x-hidden">
+    <div className="h-screen w-full neural-gradient flex flex-col text-gray-200 overflow-hidden">
+      
       <HistorySidebar 
         isOpen={historyOpen} 
         onClose={() => setHistoryOpen(false)} 
@@ -423,50 +413,44 @@ const App: React.FC = () => {
         onDelete={deleteHistory}
       />
 
-      <header className="w-full max-w-5xl flex justify-between items-center mb-8 border-b border-white/10 pb-4">
+      {/* --- Header --- */}
+      <header className="h-16 flex-none bg-black/40 border-b border-white/10 backdrop-blur-md flex items-center justify-between px-6 z-20">
         <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.5)]">
-                <SpeakerWaveIcon className="w-6 h-6 text-black" />
+            <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                <SpeakerWaveIcon className="w-5 h-5 text-black" />
             </div>
             <div>
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
-                Bengali Neural Voice
-                </h1>
-                <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-gray-400 tracking-widest uppercase">Gemini Powered Engine</p>
-                    <span className="w-1 h-1 rounded-full bg-gray-600"></span>
-                    <p className="text-[10px] tracking-[0.2em] font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-purple-500 opacity-80 uppercase">
-                        Created by Raw & Fun
+                <h1 className="text-lg font-bold text-white tracking-tight">Bengali Neural Engine</h1>
+                <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <p className="text-[10px] tracking-[0.2em] font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400 opacity-90 uppercase">
+                        CREATED BY RAW & FUN
                     </p>
                 </div>
             </div>
         </div>
-        <div className="flex gap-2">
-            <button 
-                onClick={() => setHistoryOpen(true)}
-                className="flex items-center gap-1 px-3 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 transition-colors"
-            >
-                <ClockIcon className="w-3 h-3" /> History
+        <div className="flex items-center gap-3">
+            <div className={`px-3 py-1 rounded-full border flex items-center gap-2 text-xs font-medium transition-colors ${isApiConnected ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                <div className={`w-2 h-2 rounded-full ${isApiConnected ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                {isApiConnected ? 'SYSTEM ONLINE' : 'API DISCONNECTED'}
+            </div>
+            <button onClick={() => setHistoryOpen(true)} className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                <ClockIcon className="w-5 h-5" />
             </button>
-            <span className="px-2 py-1 rounded bg-blue-900/30 border border-blue-500/30 text-[10px] text-blue-300">
-                V 2.5 TTS
-            </span>
-             <span className="px-2 py-1 rounded bg-purple-900/30 border border-purple-500/30 text-[10px] text-purple-300">
-                V 3.0 THINKING
-            </span>
         </div>
       </header>
 
-      <main className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Voice Gallery & Controls (5 Cols) */}
-        <div className="lg:col-span-5 space-y-6">
-            
-            {/* Voice Model Gallery */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-md">
-                <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-                    <MicrophoneIcon className="w-4 h-4 text-cyan-400" /> Neural Voice Model
+      {/* --- Main Dashboard --- */}
+      <div className="flex-1 flex overflow-hidden p-4 gap-4">
+        
+        {/* LEFT COLUMN: Settings (Fixed Width) */}
+        <div className="w-80 flex-none flex flex-col gap-4 overflow-hidden">
+            {/* Voice Selector */}
+            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 overflow-y-auto backdrop-blur-sm">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <MicrophoneIcon className="w-3 h-3" /> Voice Model
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
                     {Object.values(VoiceName).map(voice => {
                         const meta = VOICE_META[voice];
                         const isSelected = selectedVoice === voice;
@@ -474,232 +458,194 @@ const App: React.FC = () => {
                             <button
                                 key={voice}
                                 onClick={() => setSelectedVoice(voice)}
-                                className={`relative p-3 rounded-xl border text-left transition-all duration-300 group ${
+                                className={`w-full p-3 rounded-xl border transition-all duration-200 flex items-center gap-3 ${
                                     isSelected 
-                                    ? `${meta.bg} ${meta.border} ring-1 ring-white/20 shadow-lg` 
-                                    : 'bg-black/20 border-white/5 hover:border-white/10 hover:bg-black/40'
+                                    ? 'bg-cyan-500/10 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.1)]' 
+                                    : 'bg-black/20 border-white/5 hover:bg-black/40 hover:border-white/20'
                                 }`}
                             >
-                                <div className="flex items-start justify-between mb-1">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-black/40 ${isSelected ? 'shadow-inner' : ''}`}>
-                                        <SignalIcon className={`w-4 h-4 ${meta.iconColor}`} />
-                                    </div>
-                                    {isSelected && (
-                                        <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]"></div>
-                                    )}
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-black/40 ${isSelected ? meta.iconColor : 'text-gray-600'}`}>
+                                    <SignalIcon className="w-4 h-4" />
                                 </div>
-                                <div className={`font-semibold text-sm ${isSelected ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'}`}>
-                                    {meta.label}
+                                <div className="text-left">
+                                    <div className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-gray-400'}`}>{meta.label}</div>
+                                    <div className="text-[10px] text-gray-600 uppercase">{meta.desc}</div>
                                 </div>
-                                <div className="text-[10px] text-gray-500 mt-1 leading-tight">
-                                    {meta.desc}
-                                </div>
+                                {isSelected && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,1)]"></div>}
                             </button>
                         );
                     })}
                 </div>
             </div>
 
-            {/* Neural Parameters */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 backdrop-blur-md space-y-6">
-                 {/* Emotion */}
-                <div>
-                    <label className="text-xs font-medium text-gray-400 mb-2 flex items-center gap-2">
-                         <SparklesIcon className="w-3 h-3" /> Emotion Context
-                    </label>
-                    <div className="relative">
+            {/* Audio Parameters */}
+            <div className="h-auto bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <AdjustmentsHorizontalIcon className="w-3 h-3" /> Tuning
+                </h3>
+                
+                <div className="space-y-4">
+                     {/* Emotion */}
+                    <div>
+                        <div className="flex justify-between mb-1">
+                            <label className="text-[10px] text-gray-400">Emotion</label>
+                        </div>
                         <select 
                             value={selectedEmotion}
                             onChange={(e) => setSelectedEmotion(e.target.value as Emotion)}
-                            className="w-full appearance-none bg-black/40 border border-white/10 rounded-lg pl-3 pr-8 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-900/50 transition-all"
+                            className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-200 focus:border-cyan-500/50 outline-none"
                         >
                             {Object.values(Emotion).map(e => <option key={e} value={e}>{e}</option>)}
                         </select>
-                        <div className="absolute right-3 top-3 pointer-events-none">
-                            <AdjustmentsHorizontalIcon className="w-4 h-4 text-gray-500" />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Advanced Audio Controls */}
-                <div className="space-y-4 pt-2 border-t border-white/5">
-                    {/* Speed */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-xs font-medium text-gray-400 flex items-center gap-2">
-                                <BoltIcon className="w-3 h-3" /> Rate
-                            </label>
-                            <span className="text-[10px] font-mono text-cyan-400">{playbackRate.toFixed(1)}x</span>
-                        </div>
-                        <input type="range" min="0.5" max="1.5" step="0.1" value={playbackRate}
-                               onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
-                               className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
                     </div>
 
-                    {/* Pitch */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-xs font-medium text-gray-400 flex items-center gap-2">
-                                <MusicalNoteIcon className="w-3 h-3" /> Pitch Shift
-                            </label>
-                            <span className="text-[10px] font-mono text-purple-400">{pitchShift > 0 ? '+' : ''}{pitchShift}c</span>
+                    {/* Sliders */}
+                    {[
+                        { label: 'Speed', icon: BoltIcon, val: playbackRate, set: setPlaybackRate, min: 0.5, max: 1.5, step: 0.1, fmt: (v: number) => `${v.toFixed(1)}x` },
+                        { label: 'Pitch', icon: MusicalNoteIcon, val: pitchShift, set: setPitchShift, min: -600, max: 600, step: 50, fmt: (v: number) => `${v}c` },
+                        { label: 'Clarity', icon: SwatchIcon, val: emphasis, set: setEmphasis, min: 0, max: 15, step: 1, fmt: (v: number) => `+${v}dB` }
+                    ].map((ctrl, idx) => (
+                        <div key={idx}>
+                            <div className="flex justify-between mb-1">
+                                <label className="text-[10px] text-gray-400 flex items-center gap-1">
+                                    <ctrl.icon className="w-3 h-3" /> {ctrl.label}
+                                </label>
+                                <span className="text-[10px] font-mono text-cyan-400">{ctrl.fmt(ctrl.val)}</span>
+                            </div>
+                            <input 
+                                type="range" min={ctrl.min} max={ctrl.max} step={ctrl.step} value={ctrl.val}
+                                onChange={(e) => ctrl.set(parseFloat(e.target.value))}
+                                className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-500" 
+                            />
                         </div>
-                        <input type="range" min="-600" max="600" step="50" value={pitchShift}
-                               onChange={(e) => setPitchShift(parseFloat(e.target.value))}
-                               className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                    </div>
-
-                    {/* Emphasis/Clarity */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-xs font-medium text-gray-400 flex items-center gap-2">
-                                <SwatchIcon className="w-3 h-3" /> Clarity Boost
-                            </label>
-                            <span className="text-[10px] font-mono text-emerald-400">+{emphasis}dB</span>
-                        </div>
-                        <input type="range" min="0" max="15" step="1" value={emphasis}
-                               onChange={(e) => setEmphasis(parseFloat(e.target.value))}
-                               className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
-                    </div>
+                    ))}
                 </div>
             </div>
         </div>
 
-        {/* Right Column: Input & Visualizer (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6 flex flex-col">
-            {/* Interactive Editor Area */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-1 backdrop-blur-md flex-grow flex flex-col min-h-[450px] shadow-xl relative overflow-hidden">
-                <div className="p-3 border-b border-white/5 flex justify-between items-center bg-black/20 rounded-t-xl z-10">
-                    <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider flex items-center gap-2">
-                        <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></span>
-                        {isPlaying ? 'LIVE_PLAYBACK' : 'INPUT_MODE'}
-                    </span>
-                    <button 
-                        onClick={() => setText(SAMPLE_TEXTS[Math.floor(Math.random() * SAMPLE_TEXTS.length)])}
-                        disabled={isPlaying}
-                        className="text-[10px] px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full text-gray-400 transition-colors disabled:opacity-30"
+        {/* CENTER COLUMN: Editor (Flex Grow) */}
+        <div className="flex-1 flex flex-col min-w-0 bg-white/5 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-md relative shadow-2xl">
+            {/* Editor Toolbar */}
+            <div className="h-12 bg-black/20 border-b border-white/5 flex items-center justify-between px-4 flex-none">
+                <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-red-500 animate-ping' : 'bg-emerald-500'}`}></span>
+                    {isPlaying ? 'ON_AIR' : 'INPUT_READY'}
+                </span>
+                <button 
+                    onClick={() => setText(SAMPLE_TEXTS[Math.floor(Math.random() * SAMPLE_TEXTS.length)])}
+                    disabled={isPlaying}
+                    className="text-[10px] px-3 py-1 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 transition-colors"
+                >
+                    Load Random Sample
+                </button>
+            </div>
+            
+            {/* Text Area */}
+            <div className="flex-1 relative">
+                {renderEditor()}
+            </div>
+
+            {/* AI Action Bar */}
+            <div className="h-16 bg-black/40 border-t border-white/5 flex items-center justify-between px-6 flex-none">
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => handleOptimization(false)}
+                        disabled={processing.isThinking || processing.isSynthesizing || isPlaying}
+                        className="px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all text-xs font-medium flex items-center gap-2 border border-emerald-500/10"
                     >
-                        Random Sample
+                        <SparklesIcon className="w-4 h-4" /> Polish
+                    </button>
+                    <button
+                        onClick={() => handleOptimization(true)}
+                        disabled={processing.isThinking || processing.isSynthesizing || isPlaying}
+                        className="px-3 py-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-all text-xs font-medium flex items-center gap-2 border border-purple-500/10"
+                    >
+                        <CpuChipIcon className="w-4 h-4" /> Smart SSML
                     </button>
                 </div>
                 
-                {renderEditor()}
-                
-                {/* AI Tools Bar */}
-                <div className="p-4 border-t border-white/5 bg-black/20 rounded-b-xl flex flex-wrap gap-4 items-center justify-between z-10">
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => handleOptimization(false)}
-                            disabled={processing.isThinking || processing.isSynthesizing || isPlaying}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/5 text-emerald-400 border border-emerald-500/10 hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all text-xs font-medium disabled:opacity-50"
-                        >
-                            <SparklesIcon className="w-3.5 h-3.5" />
-                            Quick Polish
-                        </button>
-                        <button
-                            onClick={() => handleOptimization(true)}
-                            disabled={processing.isThinking || processing.isSynthesizing || isPlaying}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/5 text-purple-400 border border-purple-500/10 hover:bg-purple-500/10 hover:border-purple-500/20 transition-all text-xs font-medium disabled:opacity-50"
-                        >
-                            <CpuChipIcon className="w-3.5 h-3.5" />
-                            Smart SSML
-                        </button>
+                {processing.isThinking || processing.isSynthesizing ? (
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs text-cyan-400 font-mono animate-pulse">{processing.statusMessage}</span>
+                        <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
+                ) : (
+                    <div className="text-xs text-gray-600 font-mono">
+                        {text.length} chars
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* RIGHT COLUMN: Visuals & Actions (Fixed Width) */}
+        <div className="w-80 flex-none flex flex-col gap-4">
+            
+            {/* Visualizer Card */}
+            <div className="h-40 bg-black/40 border border-white/10 rounded-2xl overflow-hidden relative">
+                <AudioVisualizer audioContext={audioContext} sourceNode={sourceNode} isPlaying={isPlaying} />
+                <div className="absolute top-2 left-2 text-[10px] text-gray-500 font-mono">FREQ_ANALYZER</div>
+            </div>
+
+            {/* Primary Action Card */}
+            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center backdrop-blur-sm gap-6">
+                
+                {!isPlaying ? (
                     <button
                         onClick={handleSynthesis}
-                        disabled={!text.trim() || processing.isSynthesizing || isPlaying}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold shadow-lg shadow-cyan-900/20 hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
+                        disabled={!text.trim() || processing.isSynthesizing}
+                        className="group relative w-32 h-32 rounded-full bg-gradient-to-b from-cyan-500 to-blue-600 flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.3)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
                     >
-                        {processing.isSynthesizing ? (
-                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        ) : (
-                            <BoltIcon className="w-5 h-5" />
-                        )}
-                        Synthesize
+                        <BoltIcon className="w-12 h-12 text-white drop-shadow-lg" />
+                        <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-pulse"></div>
                     </button>
-                </div>
-            </div>
-
-            {/* Status & Visualizer */}
-            <div className="space-y-4">
-                {processing.isThinking && <ThinkingIndicator message={processing.statusMessage} />}
-                
-                {!processing.isThinking && processing.statusMessage && (
-                     <div className="text-center text-xs text-cyan-500/80 font-mono animate-pulse">
-                        {processing.statusMessage}
-                     </div>
+                ) : (
+                    <button
+                        onClick={handleStop}
+                        className="group relative w-32 h-32 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.2)] hover:bg-red-500/30 active:scale-95 transition-all"
+                    >
+                        <StopIcon className="w-12 h-12 text-red-500" />
+                    </button>
                 )}
 
-                <div className="relative group">
-                    <AudioVisualizer 
-                        audioContext={audioContext} 
-                        sourceNode={sourceNode} 
-                        isPlaying={isPlaying} 
-                    />
-                    
-                    {/* Playback Controls Overlay */}
-                    {audioBuffer && (
-                         <div className="absolute inset-0 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px] rounded-lg">
-                            <button
-                                onClick={() => isPlaying ? sourceNode?.stop() : playAudio(audioBuffer, audioContext)}
-                                className="w-12 h-12 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black shadow-xl flex items-center justify-center transition-transform hover:scale-110"
-                                title={isPlaying ? "Pause" : "Play"}
-                            >
-                                {isPlaying ? <PauseIcon className="w-6 h-6" /> : <PlayIcon className="w-6 h-6 ml-1" />}
-                            </button>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleDownload('wav')}
-                                    className="w-10 h-10 rounded-full bg-white hover:bg-gray-200 text-black shadow-xl flex items-center justify-center transition-transform hover:scale-110"
-                                    title="Export WAV"
-                                >
-                                    <span className="text-[8px] font-bold absolute top-1">WAV</span>
-                                    <ArrowDownTrayIcon className="w-4 h-4 mt-2" />
-                                </button>
-                                <button
-                                    onClick={() => handleDownload('ogg')}
-                                    className="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-400 text-white shadow-xl flex items-center justify-center transition-transform hover:scale-110"
-                                    title="Export OGG"
-                                >
-                                    <span className="text-[8px] font-bold absolute top-1">OGG</span>
-                                    <ArrowDownTrayIcon className="w-4 h-4 mt-2" />
-                                </button>
-                            </div>
-                         </div>
-                    )}
+                <div className="space-y-1">
+                    <h2 className="text-xl font-bold text-white">
+                        {isPlaying ? 'Playing Audio' : 'Synthesize'}
+                    </h2>
+                    <p className="text-xs text-gray-400">
+                        {isPlaying ? 'Live playback active' : 'Click to generate neural speech'}
+                    </p>
                 </div>
+
+                {audioBuffer && !isPlaying && (
+                    <div className="flex gap-2 w-full mt-4">
+                        <button onClick={() => handleDownload('wav')} className="flex-1 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium text-gray-300 transition-colors flex items-center justify-center gap-2">
+                            <ArrowDownTrayIcon className="w-3 h-3" /> WAV
+                        </button>
+                        <button onClick={() => handleDownload('ogg')} className="flex-1 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-medium text-gray-300 transition-colors flex items-center justify-center gap-2">
+                             <ArrowDownTrayIcon className="w-3 h-3" /> OGG
+                        </button>
+                    </div>
+                )}
             </div>
-        </div>
-      </main>
 
-       {/* API Key Connection Bar */}
-       <div className="w-full max-w-5xl mt-6 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm mb-8">
-            <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className={`p-2 rounded-lg ${isApiConnected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700/50 text-gray-400'}`}>
-                        <CpuChipIcon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 md:flex-none">
-                        <h3 className="text-sm font-bold text-gray-200">Gemini API Connection</h3>
-                        <p className="text-[10px] text-gray-500">
-                            {isApiConnected ? 'Securely connected to Google AI' : 'Connect your API key to enable engine'}
-                        </p>
-                    </div>
-                </div>
-
+            {/* API Connection (Bottom Right) */}
+            <div className="bg-black/40 border border-white/10 rounded-2xl p-4">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
+                    <KeyIcon className="w-3 h-3" /> Secure Connection
+                </h3>
                 {!isApiConnected ? (
-                    <div className="flex w-full md:w-auto gap-2">
-                        <input
+                    <div className="space-y-2">
+                         <input
                             type="password"
                             value={tempApiKey}
                             onChange={(e) => setTempApiKey(e.target.value)}
-                            placeholder="Paste your Gemini API Key here..."
-                            className="flex-1 md:w-64 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                            placeholder="Paste API Key..."
+                            className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-gray-200 focus:border-cyan-500/50 outline-none"
                         />
                         <button
                             onClick={handleConnectApi}
                             disabled={!tempApiKey.trim()}
-                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:hover:bg-cyan-600 text-white text-xs font-bold rounded-lg transition-all"
+                            className="w-full py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded transition-colors"
                         >
                             Connect
                         </button>
@@ -707,13 +653,14 @@ const App: React.FC = () => {
                 ) : (
                     <button
                         onClick={handleDisconnectApi}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold rounded-lg transition-colors"
+                        className="w-full py-2 bg-red-900/30 border border-red-500/30 hover:bg-red-900/50 text-red-400 text-xs font-bold rounded transition-colors"
                     >
-                        Disconnect
+                        Disconnect Key
                     </button>
                 )}
             </div>
         </div>
+      </div>
     </div>
   );
 };
