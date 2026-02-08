@@ -432,7 +432,13 @@ const App: React.FC = () => {
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
                 Bengali Neural Voice
                 </h1>
-                <p className="text-xs text-gray-400 tracking-widest uppercase">Gemini Powered Engine</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-gray-400 tracking-widest uppercase">Gemini Powered Engine</p>
+                    <span className="w-1 h-1 rounded-full bg-gray-600"></span>
+                    <p className="text-[10px] tracking-[0.2em] font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-purple-500 opacity-80 uppercase">
+                        Created by Raw & Fun
+                    </p>
+                </div>
             </div>
         </div>
         <div className="flex gap-2">
