@@ -19,7 +19,8 @@ import {
   ArrowDownTrayIcon,
   ClockIcon,
   MusicalNoteIcon,
-  SwatchIcon
+  SwatchIcon,
+  KeyIcon
 } from '@heroicons/react/24/solid';
 
 const VOICE_META = {
@@ -133,6 +134,11 @@ const App: React.FC = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  // API Key State
+  const [apiKey, setApiKey] = useState<string>("");
+  const [tempApiKey, setTempApiKey] = useState<string>("");
+  const [isApiConnected, setIsApiConnected] = useState<boolean>(false);
+
   // Audio Engine State
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [sourceNode, setSourceNode] = useState<AudioBufferSourceNode | null>(null);
@@ -155,6 +161,19 @@ const App: React.FC = () => {
     } catch(e) {
         console.error("Failed to load history", e);
     }
+  };
+
+  const handleConnectApi = () => {
+      if (tempApiKey.trim().length > 0) {
+          setApiKey(tempApiKey.trim());
+          setIsApiConnected(true);
+      }
+  };
+
+  const handleDisconnectApi = () => {
+      setApiKey("");
+      setTempApiKey("");
+      setIsApiConnected(false);
   };
 
   const initAudio = () => {
@@ -212,6 +231,10 @@ const App: React.FC = () => {
 
 
   const handleOptimization = async (deep: boolean) => {
+    if (!isApiConnected) {
+        alert("Please connect your Gemini API Key below first.");
+        return;
+    }
     if (!text.trim()) return;
     initAudio();
     
@@ -225,20 +248,24 @@ const App: React.FC = () => {
     try {
       let optimized: string;
       if (deep) {
-        optimized = await optimizeTextWithThinking(text, selectedEmotion);
+        optimized = await optimizeTextWithThinking(text, selectedEmotion, apiKey);
       } else {
-        optimized = await quickPolishText(text);
+        optimized = await quickPolishText(text, apiKey);
       }
       setText(optimized);
       setProcessing(prev => ({ ...prev, isThinking: false, progress: 100, statusMessage: "Optimization Complete" }));
       setTimeout(() => setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: '' }), 2000);
     } catch (error) {
       console.error(error);
-      setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: "Optimization Failed" });
+      setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: "Optimization Failed: Check API Key" });
     }
   };
 
   const handleSynthesis = async () => {
+    if (!isApiConnected) {
+        alert("Please connect your Gemini API Key below first.");
+        return;
+    }
     if (!text.trim()) return;
     initAudio(); // Ensure context exists
     
@@ -259,7 +286,7 @@ const App: React.FC = () => {
       const ctx = audioContext || new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
       if(!audioContext) setAudioContext(ctx);
 
-      const buffer = await synthesizeSpeech(text, selectedEmotion, selectedVoice, ctx);
+      const buffer = await synthesizeSpeech(text, selectedEmotion, selectedVoice, ctx, apiKey);
       setAudioBuffer(buffer);
       
       // Save to History
@@ -287,7 +314,7 @@ const App: React.FC = () => {
 
     } catch (error) {
       console.error(error);
-      setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: "Synthesis Failed" });
+      setProcessing({ isThinking: false, isSynthesizing: false, progress: 0, statusMessage: "Synthesis Failed: Check API Key" });
     }
   };
 
@@ -346,10 +373,6 @@ const App: React.FC = () => {
     if (!audioBuffer) return;
     
     if (format === 'ogg' && (window as any).MediaRecorder) {
-        // Attempt OGG export using MediaRecorder
-        // This requires playing the buffer into a stream. 
-        // For simplicity in this constrained environment, we'll suggest WAV if OGG fails or fallback to a renamed Blob.
-        // A true offline render to OGG requires an encoder library which we can't add.
         alert("High-quality OGG export requires external libraries. Downloading standard WAV instead.");
         handleDownload('wav');
         return;
@@ -642,6 +665,49 @@ const App: React.FC = () => {
             </div>
         </div>
       </main>
+
+       {/* API Key Connection Bar */}
+       <div className="w-full max-w-5xl mt-6 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm mb-8">
+            <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className={`p-2 rounded-lg ${isApiConnected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700/50 text-gray-400'}`}>
+                        <CpuChipIcon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 md:flex-none">
+                        <h3 className="text-sm font-bold text-gray-200">Gemini API Connection</h3>
+                        <p className="text-[10px] text-gray-500">
+                            {isApiConnected ? 'Securely connected to Google AI' : 'Connect your API key to enable engine'}
+                        </p>
+                    </div>
+                </div>
+
+                {!isApiConnected ? (
+                    <div className="flex w-full md:w-auto gap-2">
+                        <input
+                            type="password"
+                            value={tempApiKey}
+                            onChange={(e) => setTempApiKey(e.target.value)}
+                            placeholder="Paste your Gemini API Key here..."
+                            className="flex-1 md:w-64 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                        />
+                        <button
+                            onClick={handleConnectApi}
+                            disabled={!tempApiKey.trim()}
+                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:hover:bg-cyan-600 text-white text-xs font-bold rounded-lg transition-all"
+                        >
+                            Connect
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        onClick={handleDisconnectApi}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold rounded-lg transition-colors"
+                    >
+                        Disconnect
+                    </button>
+                )}
+            </div>
+        </div>
     </div>
   );
 };

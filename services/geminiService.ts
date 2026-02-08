@@ -42,11 +42,12 @@ export const stripSSML = (text: string): string => {
 
 export const optimizeTextWithThinking = async (
   text: string, 
-  emotion: Emotion
+  emotion: Emotion,
+  apiKey: string
 ): Promise<string> => {
-  if (!process.env.API_KEY) throw new Error("API Key missing");
+  if (!apiKey) throw new Error("API Key is required");
   
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey });
   
   // Use Gemini 3 Pro with Thinking for deep phonetic and prosody analysis
   const response = await ai.models.generateContent({
@@ -76,9 +77,9 @@ export const optimizeTextWithThinking = async (
   return response.text?.trim() || text;
 };
 
-export const quickPolishText = async (text: string): Promise<string> => {
-    if (!process.env.API_KEY) throw new Error("API Key missing");
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const quickPolishText = async (text: string, apiKey: string): Promise<string> => {
+    if (!apiKey) throw new Error("API Key is required");
+    const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -91,11 +92,12 @@ export const synthesizeSpeech = async (
   text: string,
   emotion: Emotion,
   voice: VoiceName,
-  audioContext: AudioContext
+  audioContext: AudioContext,
+  apiKey: string
 ): Promise<AudioBuffer> => {
-  if (!process.env.API_KEY) throw new Error("API Key missing");
+  if (!apiKey) throw new Error("API Key is required");
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey });
   
   const processingInstruction = EMOTION_TAGS[emotion];
   let cleanText = stripSSML(text);
